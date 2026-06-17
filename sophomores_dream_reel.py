@@ -311,33 +311,40 @@ class SophomoresDreamReel(Scene):
         sub_group = stack_vertical(sub_caption, sub_eq, buff=0.55).move_to([0, CENTER_Y, 0])
         keep_inside_safe_area(sub_group)
 
-        interval_line = prep_equation(
-            MathTex(
-                r"x:0\to1\quad\Rightarrow\quad t:\infty\to0",
-                font_size=48,
-                color=main,
-                substrings_to_isolate=["x", "t"],
-            ),
-            5.9,
+        interval_line_raw = MathTex(
+            r"x:0\to1\quad\Rightarrow\quad",
+            r"t",
+            r":\infty\to0",
+            font_size=48,
+            color=main,
         )
-        interval_line.set_color_by_tex("x", x_color)
-        interval_line.set_color_by_tex("t", sub_color)
-        log_line = prep_equation(MathTex(r"-\ln x\longrightarrow t", font_size=50, color=exp_color), 5.5)
+        interval_line_raw[0].set_color(x_color)
+        interval_line_raw[1].set_color(sub_color)
+        interval_line = prep_equation(interval_line_raw, 5.9)
+        log_line_raw = MathTex(
+            r"-\ln x\longrightarrow",
+            r"t",
+            font_size=50,
+            color=exp_color,
+        )
+        log_line_raw[1].set_color(sub_color)
+        log_line = prep_equation(log_line_raw, 5.5)
         interval_group = stack_vertical(interval_line, log_line, buff=0.8).move_to([0, CENTER_Y, 0])
         keep_inside_safe_area(interval_group)
         assert not objects_overlap(interval_line, log_line)
 
         old_int = prep_equation(MathTex(r"\int_0^1x^n(-\ln x)^n\,dx", font_size=48, color=main), 5.8)
-        new_int = prep_equation(
-            MathTex(
-                r"\int_0^\infty t^ne^{-(n+1)t}\,dt",
-                font_size=50,
-                color=main,
-                substrings_to_isolate=["t"],
-            ),
-            5.8,
+        new_int_raw = MathTex(
+            r"\int_0^\infty",
+            r"t^n",
+            r"e^{-(n+1)t}",
+            r"\,dt",
+            font_size=50,
+            color=main,
         )
-        new_int.set_color_by_tex("t", sub_color)
+        new_int_raw[1].set_color(sub_color)
+        new_int_raw[2].set_color(sub_color)
+        new_int = prep_equation(new_int_raw, 5.8)
         transformed_group = stack_vertical(old_int, new_int, buff=0.75).move_to([0, CENTER_Y, 0])
         keep_inside_safe_area(transformed_group)
         assert not objects_overlap(old_int, new_int)
@@ -357,12 +364,15 @@ class SophomoresDreamReel(Scene):
         u_eq = prep_equation(MathTex(r"u=(n+1)t", font_size=60, color=sub_color), 5.4).move_to([0, CENTER_Y, 0])
         scaled_line_1 = MathTex(r"\frac{1}{(n+1)^{n+1}}", font_size=52, color=main)
         scaled_line_2 = MathTex(
-            r"\int_0^\infty u^ne^{-u}\,du",
+            r"\int_0^\infty",
+            r"u^n",
+            r"e^{-u}",
+            r"\,du",
             font_size=52,
             color=main,
-            substrings_to_isolate=["u"],
         )
-        scaled_line_2.set_color_by_tex("u", sub_color)
+        scaled_line_2[1].set_color(sub_color)
+        scaled_line_2[2].set_color(sub_color)
         scaled_group = prep_equation(stack_vertical(scaled_line_1, scaled_line_2, buff=0.22), 5.6)
         scaled_group.move_to([0, CENTER_Y, 0])
 
