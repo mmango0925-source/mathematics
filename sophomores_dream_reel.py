@@ -150,8 +150,17 @@ class SophomoresDreamReel(Scene):
         # 0–2 seconds: hook.
         # Running total ≈ 1.9s
         # ------------------------------------------------------------------
-        hook_eq = prep_equation(MathTex(r"I=\int_0^1 x^{-x}\,dx", font_size=68, color=main), 5.8)
-        hook_eq.set_color_by_tex(r"x^{-x}", x_color).move_to([0, UPPER_Y, 0])
+        hook_eq = prep_equation(
+            MathTex(
+                r"I=\int_0^1 x^{-x}\,dx",
+                font_size=68,
+                color=main,
+                substrings_to_isolate=[r"x^{-x}"],
+            ),
+            5.8,
+        )
+        hook_eq.set_color_by_tex(r"x^{-x}", x_color)
+        hook_eq.move_to([0, UPPER_Y, 0])
         hook_caption = caption("This integral becomes a series.", sigma_color, 32)
         hook_group = stack_vertical(hook_eq, hook_caption, buff=0.45).move_to([0, 2.65, 0])
         keep_inside_safe_area(hook_group)
@@ -176,7 +185,7 @@ class SophomoresDreamReel(Scene):
         assert not objects_overlap(hook_group, graph_group)
 
         teaser = prep_equation(
-            MathTex(r"?\ \longrightarrow\ 1+{1\over2^2}+{1\over3^3}+\cdots", font_size=42, color=final_color),
+            MathTex(r"?\ \longrightarrow\ 1+\frac{1}{2^2}+\frac{1}{3^3}+\cdots", font_size=42, color=final_color),
             5.9,
         ).move_to([0, BOTTOM_Y, 0])
         keep_inside_safe_area(teaser)
@@ -193,15 +202,32 @@ class SophomoresDreamReel(Scene):
         # Running total ≈ 4.9s
         # ------------------------------------------------------------------
         integrand_caption = caption("Expose the exponential.", exp_color, 34)
-        integrand = prep_equation(MathTex(r"x^{-x}\ \longrightarrow\ e^{-x\ln x}", font_size=62, color=main), 5.8)
+        integrand = prep_equation(
+            MathTex(
+                r"x^{-x}\ \longrightarrow\ e^{-x\ln x}",
+                font_size=62,
+                color=main,
+                substrings_to_isolate=[r"x^{-x}", r"-x\ln x"],
+            ),
+            5.8,
+        )
         integrand.set_color_by_tex(r"x^{-x}", x_color)
         integrand.set_color_by_tex(r"-x\ln x", exp_color)
         integrand_group = stack_vertical(integrand_caption, integrand, buff=0.55).move_to([0, CENTER_Y, 0])
         keep_inside_safe_area(integrand_group)
         assert not objects_overlap(integrand_caption, integrand)
 
-        integral_exp = prep_equation(MathTex(r"I=\int_0^1 e^{-x\ln x}\,dx", font_size=56, color=main), 5.8)
-        integral_exp.set_color_by_tex(r"-x\ln x", exp_color).move_to([0, CENTER_Y, 0])
+        integral_exp = prep_equation(
+            MathTex(
+                r"I=\int_0^1 e^{-x\ln x}\,dx",
+                font_size=56,
+                color=main,
+                substrings_to_isolate=[r"-x\ln x"],
+            ),
+            5.8,
+        )
+        integral_exp.set_color_by_tex(r"-x\ln x", exp_color)
+        integral_exp.move_to([0, CENTER_Y, 0])
         focus_exp = SurroundingRectangle(integral_exp, color=exp_color, buff=0.18, corner_radius=0.08).set_z_index(7)
 
         self.play(FadeOut(graph_group), FadeTransform(hook_group, integrand_group), run_time=0.60)
@@ -216,16 +242,27 @@ class SophomoresDreamReel(Scene):
         # Running total ≈ 7.9s
         # ------------------------------------------------------------------
         taylor_caption = caption("One function becomes infinitely many.", sigma_color, 31)
-        taylor_1 = prep_equation(MathTex(r"e^z=1+z+{z^2\over2!}+\cdots", font_size=54, color=main), 5.9)
+        taylor_1 = prep_equation(MathTex(r"e^z=1+z+\frac{z^2}{2!}+\cdots", font_size=54, color=main), 5.9)
         taylor_2 = prep_equation(
-            MathTex(r"e^{-x\ln x}=1+(-x\ln x)+{(-x\ln x)^2\over2!}+\cdots", font_size=46, color=main),
+            MathTex(r"e^{-x\ln x}=1+(-x\ln x)+\frac{(-x\ln x)^2}{2!}+\cdots", font_size=46, color=main),
             6.0,
         )
-        sigma_line_1 = MathTex(r"e^{-x\ln x}", font_size=54, color=main)
-        sigma_line_2 = MathTex(r"=\sum_{n=0}^{\infty}{x^n(-\ln x)^n\over n!}", font_size=50, color=main)
-        sigma_group = prep_equation(stack_vertical(sigma_line_1, sigma_line_2, buff=0.22), 5.95)
-        sigma_group.set_color_by_tex(r"\sum", sigma_color)
-        sigma_group.set_color_by_tex(r"-\ln x", exp_color)
+        sigma_line_1 = MathTex(
+            r"e^{-x\ln x}",
+            font_size=54,
+            color=main,
+            substrings_to_isolate=[r"-x\ln x"],
+        )
+        sigma_line_2 = MathTex(
+            r"=\sum_{n=0}^{\infty}\frac{x^n(-\ln x)^n}{n!}",
+            font_size=50,
+            color=main,
+            substrings_to_isolate=[r"\sum_{n=0}^{\infty}", r"-\ln x"],
+        )
+        sigma_line_1.set_color_by_tex(r"-x\ln x", exp_color)
+        sigma_line_2.set_color_by_tex(r"\sum_{n=0}^{\infty}", sigma_color)
+        sigma_line_2.set_color_by_tex(r"-\ln x", exp_color)
+        sigma_group = prep_equation(stack_vertical(sigma_line_1, sigma_line_2, buff=0.32), 5.95)
 
         taylor_group_1 = stack_vertical(taylor_caption, taylor_1, buff=0.60).move_to([0, CENTER_Y, 0])
         taylor_group_2 = stack_vertical(taylor_caption.copy(), taylor_2, buff=0.60).move_to([0, CENTER_Y, 0])
@@ -245,15 +282,15 @@ class SophomoresDreamReel(Scene):
         # 8–11 seconds: move the sum outside the integral.
         # Running total ≈ 10.8s
         # ------------------------------------------------------------------
-        inside_line_1 = MathTex(r"I=\int_0^1", r"\sum_{n=0}^{\infty}", font_size=54, color=main)
-        inside_line_2 = MathTex(r"{x^n(-\ln x)^n\over n!}\,dx", font_size=50, color=main)
+        inside_line_1 = MathTex(r"I=\int_0^1", r"\sum_{n=0}^{\infty}", font_size=54, color=main, substrings_to_isolate=[r"\sum_{n=0}^{\infty}"])
+        inside_line_2 = MathTex(r"\frac{x^n(-\ln x)^n}{n!}\,dx", font_size=50, color=main)
         inside_group = prep_equation(stack_vertical(inside_line_1, inside_line_2, buff=0.30), 5.9).move_to([0, CENTER_Y + 0.4, 0])
-        inside_group.set_color_by_tex(r"\sum", sigma_color)
+        inside_line_1.set_color_by_tex(r"\sum_{n=0}^{\infty}", sigma_color)
 
-        outside_line_1 = MathTex(r"I=\sum_{n=0}^{\infty}{1\over n!}", font_size=54, color=main)
+        outside_line_1 = MathTex(r"I=\sum_{n=0}^{\infty}\frac{1}{n!}", font_size=54, color=main, substrings_to_isolate=[r"\sum_{n=0}^{\infty}"])
         outside_line_2 = MathTex(r"\int_0^1x^n(-\ln x)^n\,dx", font_size=50, color=main)
         outside_group = prep_equation(stack_vertical(outside_line_1, outside_line_2, buff=0.35), 5.9).move_to([0, CENTER_Y + 0.35, 0])
-        outside_group.set_color_by_tex(r"\sum", sigma_color)
+        outside_line_1.set_color_by_tex(r"\sum_{n=0}^{\infty}", sigma_color)
 
         note = caption("Termwise integration is valid here.", muted, 23).move_to([0, -2.2, 0])
         keep_inside_safe_area(note)
@@ -274,7 +311,15 @@ class SophomoresDreamReel(Scene):
         sub_group = stack_vertical(sub_caption, sub_eq, buff=0.55).move_to([0, CENTER_Y, 0])
         keep_inside_safe_area(sub_group)
 
-        interval_line = prep_equation(MathTex(r"x:0\to1\quad\Rightarrow\quad t:\infty\to0", font_size=48, color=main), 5.9)
+        interval_line = prep_equation(
+            MathTex(
+                r"x:0\to1\quad\Rightarrow\quad t:\infty\to0",
+                font_size=48,
+                color=main,
+                substrings_to_isolate=["x", "t"],
+            ),
+            5.9,
+        )
         interval_line.set_color_by_tex("x", x_color)
         interval_line.set_color_by_tex("t", sub_color)
         log_line = prep_equation(MathTex(r"-\ln x\longrightarrow t", font_size=50, color=exp_color), 5.5)
@@ -283,7 +328,15 @@ class SophomoresDreamReel(Scene):
         assert not objects_overlap(interval_line, log_line)
 
         old_int = prep_equation(MathTex(r"\int_0^1x^n(-\ln x)^n\,dx", font_size=48, color=main), 5.8)
-        new_int = prep_equation(MathTex(r"\int_0^\infty t^ne^{-(n+1)t}\,dt", font_size=50, color=main), 5.8)
+        new_int = prep_equation(
+            MathTex(
+                r"\int_0^\infty t^ne^{-(n+1)t}\,dt",
+                font_size=50,
+                color=main,
+                substrings_to_isolate=["t"],
+            ),
+            5.8,
+        )
         new_int.set_color_by_tex("t", sub_color)
         transformed_group = stack_vertical(old_int, new_int, buff=0.75).move_to([0, CENTER_Y, 0])
         keep_inside_safe_area(transformed_group)
@@ -302,20 +355,34 @@ class SophomoresDreamReel(Scene):
         # Running total ≈ 16.9s
         # ------------------------------------------------------------------
         u_eq = prep_equation(MathTex(r"u=(n+1)t", font_size=60, color=sub_color), 5.4).move_to([0, CENTER_Y, 0])
-        scaled_line_1 = MathTex(r"{1\over(n+1)^{n+1}}", font_size=52, color=main)
-        scaled_line_2 = MathTex(r"\int_0^\infty u^ne^{-u}\,du", font_size=52, color=main)
+        scaled_line_1 = MathTex(r"\frac{1}{(n+1)^{n+1}}", font_size=52, color=main)
+        scaled_line_2 = MathTex(
+            r"\int_0^\infty u^ne^{-u}\,du",
+            font_size=52,
+            color=main,
+            substrings_to_isolate=["u"],
+        )
+        scaled_line_2.set_color_by_tex("u", sub_color)
         scaled_group = prep_equation(stack_vertical(scaled_line_1, scaled_line_2, buff=0.22), 5.6)
-        scaled_group.set_color_by_tex("u", sub_color).move_to([0, CENTER_Y, 0])
+        scaled_group.move_to([0, CENTER_Y, 0])
 
         gamma_label = caption("Gamma integral", gamma_color, 34)
-        gamma_eq = prep_equation(MathTex(r"\int_0^\infty u^ne^{-u}\,du=n!", font_size=52, color=main), 5.8)
+        gamma_eq = prep_equation(
+            MathTex(
+                r"\int_0^\infty u^ne^{-u}\,du=n!",
+                font_size=52,
+                color=main,
+                substrings_to_isolate=["n!"],
+            ),
+            5.8,
+        )
         gamma_eq.set_color_by_tex("n!", gamma_color)
         gamma_group = stack_vertical(gamma_label, gamma_eq, buff=0.45).move_to([0, CENTER_Y, 0])
         keep_inside_safe_area(gamma_group)
         assert not objects_overlap(gamma_label, gamma_eq)
 
         result_line_1 = MathTex(r"\int_0^1x^n(-\ln x)^n\,dx", font_size=43, color=main)
-        result_line_2 = MathTex(r"={n!\over(n+1)^{n+1}}", font_size=56, color=gamma_color)
+        result_line_2 = MathTex(r"=\frac{n!}{(n+1)^{n+1}}", font_size=56, color=gamma_color)
         result_group = prep_equation(stack_vertical(result_line_1, result_line_2, buff=0.35), 5.8).move_to([0, CENTER_Y, 0])
 
         self.play(FadeOut(transformed_group), FadeIn(u_eq), run_time=0.45)
@@ -330,9 +397,14 @@ class SophomoresDreamReel(Scene):
         # Running total ≈ 19.9s
         # ------------------------------------------------------------------
         cancel_eq_line_1 = MathTex(r"I=\sum_{n=0}^{\infty}", font_size=54, color=main)
-        cancel_eq_line_2 = MathTex(r"{1\over n!}\,{n!\over(n+1)^{n+1}}", font_size=54, color=main)
+        cancel_eq_line_2 = MathTex(
+            r"\frac{1}{n!}\,\frac{n!}{(n+1)^{n+1}}",
+            font_size=54,
+            color=main,
+            substrings_to_isolate=["n!"],
+        )
+        cancel_eq_line_2.set_color_by_tex("n!", gamma_color)
         cancel_eq = prep_equation(stack_vertical(cancel_eq_line_1, cancel_eq_line_2, buff=0.24), 5.8)
-        cancel_eq.set_color_by_tex("n!", gamma_color)
         cancel_caption = caption("Everything cancels perfectly.", final_color, 31)
         cancel_group = stack_vertical(cancel_eq, cancel_caption, buff=0.60).move_to([0, CENTER_Y, 0])
         keep_inside_safe_area(cancel_group)
@@ -343,10 +415,16 @@ class SophomoresDreamReel(Scene):
             Line([0.08, -0.04, 0], [0.50, -0.43, 0], color=gamma_color, stroke_width=7),
         ).set_z_index(7)
 
-        simplified_line_1 = MathTex(r"I=\sum_{n=0}^{\infty}", font_size=56, color=main)
-        simplified_line_2 = MathTex(r"{1\over(n+1)^{n+1}}", font_size=58, color=main)
+        simplified_line_1 = MathTex(
+            r"I=\sum_{n=0}^{\infty}",
+            font_size=56,
+            color=main,
+            substrings_to_isolate=[r"\sum_{n=0}^{\infty}"],
+        )
+        simplified_line_1.set_color_by_tex(r"\sum_{n=0}^{\infty}", sigma_color)
+        simplified_line_2 = MathTex(r"\frac{1}{(n+1)^{n+1}}", font_size=58, color=main)
         simplified_group = prep_equation(stack_vertical(simplified_line_1, simplified_line_2, buff=0.28), 5.6)
-        simplified_group.set_color_by_tex(r"\sum", sigma_color).move_to([0, CENTER_Y, 0])
+        simplified_group.move_to([0, CENTER_Y, 0])
 
         self.play(FadeTransform(result_group, cancel_group), run_time=0.60)
         self.play(Create(cancel_marks), run_time=0.35)
@@ -360,16 +438,16 @@ class SophomoresDreamReel(Scene):
         # Running total ≈ 23.2s including final hold and clean loop ending.
         # ------------------------------------------------------------------
         k_eq = prep_equation(MathTex(r"k=n+1", font_size=54, color=sub_color), 5.3).move_to([0, UPPER_Y, 0])
-        reindexed = prep_equation(MathTex(r"\sum_{k=1}^{\infty}{1\over k^k}", font_size=64, color=final_color), 5.3).move_to([0, CENTER_Y, 0])
+        reindexed = prep_equation(MathTex(r"\sum_{k=1}^{\infty}\frac{1}{k^k}", font_size=64, color=final_color), 5.3).move_to([0, CENTER_Y, 0])
         reindex_group = stack_vertical(k_eq, reindexed, buff=0.65).move_to([0, CENTER_Y + 0.2, 0])
         keep_inside_safe_area(reindex_group)
         assert not objects_overlap(k_eq, reindexed)
 
-        expanded = prep_equation(MathTex(r"1+{1\over2^2}+{1\over3^3}+\cdots", font_size=50, color=final_color), 5.8).move_to([0, CENTER_Y, 0])
+        expanded = prep_equation(MathTex(r"1+\frac{1}{2^2}+\frac{1}{3^3}+\cdots", font_size=50, color=final_color), 5.8).move_to([0, CENTER_Y, 0])
 
         final_integral = MathTex(r"\int_0^1x^{-x}\,dx", font_size=66, color=main)
         final_equals = MathTex(r"=", font_size=58, color=main)
-        final_series = MathTex(r"\sum_{k=1}^{\infty}{1\over k^k}", font_size=66, color=final_color)
+        final_series = MathTex(r"\sum_{k=1}^{\infty}\frac{1}{k^k}", font_size=66, color=final_color)
         final_group = prep_equation(stack_vertical(final_integral, final_equals, final_series, buff=0.30), 5.8, 4.8).move_to([0, CENTER_Y, 0])
         final_box = SurroundingRectangle(final_group, color=final_color, buff=0.30, corner_radius=0.14).set_z_index(7)
         numeric_value = Tex(r"$\approx 1.291285997\ldots$", font_size=30, color=muted).set_z_index(6)
