@@ -5,17 +5,6 @@ Quick test:
 
 Full-quality vertical render:
     manim -qh --fps 30 sophomores_dream_reel.py SophomoresDreamReel
-
-Optional Instagram-friendly H.264 conversion:
-    ffmpeg \
-    -i media/videos/sophomores_dream_reel/1080p30/SophomoresDreamReel.mp4 \
-    -c:v libx264 \
-    -profile:v high \
-    -level 4.1 \
-    -pix_fmt yuv420p \
-    -movflags +faststart \
-    -an \
-    sophomores_dream_instagram.mp4
 """
 
 from manim import *
@@ -27,244 +16,381 @@ config.frame_width = 9
 config.frame_height = 16
 config.frame_rate = 30
 
+# Asymmetric mobile safe area: extra room on the right for Reel buttons.
+SAFE_LEFT = -3.4
+SAFE_RIGHT = 2.8
+SAFE_TOP = 5.6
+SAFE_BOTTOM = -5.6
+
+TITLE_Y = 4.6
+UPPER_Y = 2.8
+CENTER_Y = 0.2
+LOWER_Y = -2.6
+BOTTOM_Y = -4.8
+
+DEBUG_LAYOUT = False
+
+
+def fit_to_safe_width(mobject, max_width=6.0):
+    """Keep equations large, but never wider than the mobile safe width."""
+    if mobject.width > max_width:
+        mobject.scale_to_fit_width(max_width)
+    return mobject
+
+
+def fit_to_safe_height(mobject, max_height=4.8):
+    """Keep tall groups inside the central safe area."""
+    if mobject.height > max_height:
+        mobject.scale_to_fit_height(max_height)
+    return mobject
+
+
+def stack_vertical(*mobjects, buff=0.65):
+    """Consistent vertical layout for Reel-safe equation groups."""
+    return VGroup(*mobjects).arrange(DOWN, buff=buff)
+
+
+def keep_inside_safe_area(mobject):
+    """Shift a positioned object back into the asymmetric safe rectangle."""
+    left = mobject.get_left()[0]
+    right = mobject.get_right()[0]
+    top = mobject.get_top()[1]
+    bottom = mobject.get_bottom()[1]
+
+    if left < SAFE_LEFT:
+        mobject.shift((SAFE_LEFT - left) * RIGHT)
+    if right > SAFE_RIGHT:
+        mobject.shift((SAFE_RIGHT - right) * LEFT)
+    if top > SAFE_TOP:
+        mobject.shift((top - SAFE_TOP) * DOWN)
+    if bottom < SAFE_BOTTOM:
+        mobject.shift((SAFE_BOTTOM - bottom) * UP)
+    return mobject
+
+
+def objects_overlap(a, b, padding=0.15):
+    """Axis-aligned bounding-box overlap check for final object positions."""
+    a_left = a.get_left()[0] - padding
+    a_right = a.get_right()[0] + padding
+    a_bottom = a.get_bottom()[1] - padding
+    a_top = a.get_top()[1] + padding
+
+    b_left = b.get_left()[0] - padding
+    b_right = b.get_right()[0] + padding
+    b_bottom = b.get_bottom()[1] - padding
+    b_top = b.get_top()[1] + padding
+
+    horizontal_overlap = a_left < b_right and a_right > b_left
+    vertical_overlap = a_bottom < b_top and a_top > b_bottom
+    return horizontal_overlap and vertical_overlap
+
 
 class SophomoresDreamReel(Scene):
-    """A 20–24 second vertical animation for ∫₀¹ x^{-x} dx = Σ 1/nⁿ."""
+    """A clear 20–24 second vertical animation for the first Sophomore's Dream."""
 
     def construct(self):
         self.camera.background_color = "#080A12"
 
-        # Limited, consistent palette for a clean mobile look.
-        main_color = WHITE
-        subtle = GRAY_B
+        # Restrained palette: math first, accents only for structure.
+        main = WHITE
+        muted = GRAY_B
         x_color = BLUE_C
         exp_color = TEAL_C
         sigma_color = YELLOW_C
         sub_color = PURPLE_B
         gamma_color = ORANGE
         final_color = GOLD
-        area_color = BLUE_E
+        fill_color = BLUE_E
+
+        visible_objects = VGroup()
 
         def caption(text, color=WHITE, size=34):
-            """Bold, short captions that remain readable on a phone."""
-            return Tex(rf"\textbf{{{text}}}", font_size=size, color=color)
+            mob = Tex(rf"\textbf{{{text}}}", font_size=size, color=color)
+            mob.set_z_index(6)
+            return keep_inside_safe_area(fit_to_safe_width(mob, 5.8))
+
+        def prep_equation(mob, max_width=6.0, max_height=4.8, z=5):
+            mob.set_z_index(z)
+            return keep_inside_safe_area(fit_to_safe_height(fit_to_safe_width(mob, max_width), max_height))
+
+        def set_visible(*mobjects):
+            nonlocal visible_objects
+            visible_objects = VGroup(*mobjects)
+
+        def clear_visible(run_time=0.3):
+            nonlocal visible_objects
+            if len(visible_objects) == 0:
+                return
+            self.play(FadeOut(visible_objects), run_time=run_time)
+            visible_objects = VGroup()
 
         def x_to_minus_x(x):
-            """Safe graphing helper: avoid evaluating the endpoint x=0."""
+            # Graph only starts at x=0.01, but this keeps the helper safe.
             if x <= 0:
                 return 1
             return x ** (-x)
 
+        if DEBUG_LAYOUT:
+            safe_width = SAFE_RIGHT - SAFE_LEFT
+            safe_height = SAFE_TOP - SAFE_BOTTOM
+            safe_center_x = (SAFE_LEFT + SAFE_RIGHT) / 2
+            safe_center_y = (SAFE_TOP + SAFE_BOTTOM) / 2
+            safe_rect = Rectangle(width=safe_width, height=safe_height, color=RED_C)
+            safe_rect.move_to([safe_center_x, safe_center_y, 0]).set_stroke(opacity=0.45)
+            zone_labels = VGroup(
+                Tex("TITLE", font_size=18).move_to([SAFE_LEFT + 0.5, TITLE_Y, 0]),
+                Tex("UPPER", font_size=18).move_to([SAFE_LEFT + 0.55, UPPER_Y, 0]),
+                Tex("CENTER", font_size=18).move_to([SAFE_LEFT + 0.65, CENTER_Y, 0]),
+                Tex("LOWER", font_size=18).move_to([SAFE_LEFT + 0.55, LOWER_Y, 0]),
+                Tex("BOTTOM", font_size=18).move_to([SAFE_LEFT + 0.65, BOTTOM_Y, 0]),
+            ).set_color(RED_C)
+            self.add(safe_rect, zone_labels)
+
         # ------------------------------------------------------------------
         # 0–2 seconds: hook.
-        # Running total ≈ 2.0s
+        # Running total ≈ 1.9s
         # ------------------------------------------------------------------
-        hook = MathTex(r"\int_0^1 x^{-x}\,dx", font_size=74, color=main_color)
-        hook.move_to([0, 3.05, 0])
-        hook.set_color_by_tex(r"x^{-x}", x_color)
-        hook_caption = caption("This integral becomes a series.", sigma_color, 34)
-        hook_caption.next_to(hook, DOWN, buff=0.28)
+        hook_eq = prep_equation(MathTex(r"I=\int_0^1 x^{-x}\,dx", font_size=68, color=main), 5.8)
+        hook_eq.set_color_by_tex(r"x^{-x}", x_color).move_to([0, UPPER_Y, 0])
+        hook_caption = caption("This integral becomes a series.", sigma_color, 32)
+        hook_group = stack_vertical(hook_eq, hook_caption, buff=0.45).move_to([0, 2.65, 0])
+        keep_inside_safe_area(hook_group)
 
         axes = Axes(
             x_range=[0, 1.05, 0.25],
             y_range=[0, 1.5, 0.5],
-            x_length=5.4,
-            y_length=2.75,
+            x_length=5.2,
+            y_length=2.55,
             tips=False,
-            axis_config={"color": subtle, "stroke_width": 2},
-        ).move_to([0, -2.35, 0])
-        graph = axes.plot(x_to_minus_x, x_range=[0.01, 1, 0.01], color=x_color, stroke_width=4)
-        area = axes.get_area(graph, x_range=[0.01, 1], color=area_color, opacity=0.45)
-        teaser = MathTex(
-            r"?\quad\longrightarrow\quad 1+{1\over2^2}+{1\over3^3}+\cdots",
-            font_size=42,
-            color=final_color,
-        ).move_to([0, -4.55, 0])
+            axis_config={"color": muted, "stroke_width": 2},
+        )
+        curve = axes.plot(x_to_minus_x, x_range=[0.01, 1, 0.01], color=x_color, stroke_width=4)
+        area = axes.get_area(curve, x_range=[0.01, 1], color=fill_color, opacity=0.38)
+        axis_labels = axes.get_axis_labels(MathTex("x", font_size=24), MathTex("y", font_size=24))
+        area.set_z_index(1)
+        axes.set_z_index(2)
+        axis_labels.set_z_index(2)
+        curve.set_z_index(3)
+        graph_group = VGroup(axes, area, curve, axis_labels).move_to([0, LOWER_Y, 0])
+        keep_inside_safe_area(graph_group)
+        assert not objects_overlap(hook_group, graph_group)
 
-        self.play(FadeIn(hook, scale=1.08), Create(axes), run_time=0.45)
-        self.play(Create(graph), FadeIn(area), FadeIn(hook_caption, shift=UP * 0.1), run_time=0.55)
-        self.play(FadeIn(teaser, shift=UP * 0.15), run_time=0.55)
-        self.play(FadeOut(teaser), FadeOut(hook_caption), run_time=0.30)
+        teaser = prep_equation(
+            MathTex(r"?\ \longrightarrow\ 1+{1\over2^2}+{1\over3^3}+\cdots", font_size=42, color=final_color),
+            5.9,
+        ).move_to([0, BOTTOM_Y, 0])
+        keep_inside_safe_area(teaser)
+        assert not objects_overlap(teaser, graph_group, padding=0.05)
+
+        self.play(FadeIn(hook_eq, scale=1.04), FadeIn(hook_caption), run_time=0.45)
+        self.play(Create(axes), FadeIn(area), Create(curve), FadeIn(axis_labels), run_time=0.55)
+        self.play(FadeIn(teaser, shift=UP * 0.12), run_time=0.45)
+        self.play(FadeOut(teaser), run_time=0.25)
+        set_visible(hook_group, graph_group)
+
         # ------------------------------------------------------------------
         # 2–5 seconds: exponential form.
-        # Running total ≈ 5.0s
+        # Running total ≈ 4.9s
         # ------------------------------------------------------------------
-        base = MathTex(r"x^{-x}", font_size=66, color=x_color).move_to([0, 2.35, 0])
-        exp_form = MathTex(r"e^{-x\ln x}", font_size=66, color=exp_color).move_to(base)
-        integral_exp = MathTex(r"I=\int_0^1 e^{-x\ln x}\,dx", font_size=56, color=main_color)
-        integral_exp.move_to([0, 0.65, 0])
-        integral_exp.set_color_by_tex(r"-x\ln x", exp_color)
-        exp_caption = caption("Expose the exponential.", exp_color, 34).move_to([0, -1.05, 0])
-        exp_focus = SurroundingRectangle(exp_form, color=exp_color, buff=0.16, corner_radius=0.08)
+        integrand_caption = caption("Expose the exponential.", exp_color, 34)
+        integrand = prep_equation(MathTex(r"x^{-x}\ \longrightarrow\ e^{-x\ln x}", font_size=62, color=main), 5.8)
+        integrand.set_color_by_tex(r"x^{-x}", x_color)
+        integrand.set_color_by_tex(r"-x\ln x", exp_color)
+        integrand_group = stack_vertical(integrand_caption, integrand, buff=0.55).move_to([0, CENTER_Y, 0])
+        keep_inside_safe_area(integrand_group)
+        assert not objects_overlap(integrand_caption, integrand)
 
-        self.play(FadeOut(axes), FadeOut(area), FadeOut(graph), ReplacementTransform(hook, base), run_time=0.55)
-        self.play(TransformMatchingTex(base, exp_form), FadeIn(exp_caption), run_time=0.65)
-        self.play(Create(exp_focus), run_time=0.35)
-        self.play(ReplacementTransform(exp_form.copy(), integral_exp), FadeOut(exp_focus), run_time=0.60)
-        self.play(Circumscribe(integral_exp, color=exp_color), run_time=0.40)
-        self.play(FadeOut(exp_caption), run_time=0.20)
+        integral_exp = prep_equation(MathTex(r"I=\int_0^1 e^{-x\ln x}\,dx", font_size=56, color=main), 5.8)
+        integral_exp.set_color_by_tex(r"-x\ln x", exp_color).move_to([0, CENTER_Y, 0])
+        focus_exp = SurroundingRectangle(integral_exp, color=exp_color, buff=0.18, corner_radius=0.08).set_z_index(7)
+
+        self.play(FadeOut(graph_group), FadeTransform(hook_group, integrand_group), run_time=0.60)
+        self.play(Circumscribe(integrand, color=exp_color), run_time=0.45)
+        self.play(FadeTransform(integrand, integral_exp), FadeOut(integrand_caption), run_time=0.60)
+        self.play(Create(focus_exp), run_time=0.35)
+        self.play(FadeOut(focus_exp), run_time=0.25)
+        set_visible(integral_exp)
 
         # ------------------------------------------------------------------
         # 5–8 seconds: Taylor expansion.
-        # Running total ≈ 8.0s
+        # Running total ≈ 7.9s
         # ------------------------------------------------------------------
-        series_caption = caption("One function becomes infinitely many.", sigma_color, 32).move_to([0, 3.45, 0])
-        ez = MathTex(r"e^z=1+z+{z^2\over2!}+{z^3\over3!}+\cdots", font_size=50, color=main_color)
-        ez.move_to([0, 1.6, 0])
-        terms = VGroup(
-            MathTex("1", font_size=44, color=main_color),
-            MathTex(r"x(-\ln x)", font_size=44, color=exp_color),
-            MathTex(r"{x^2(-\ln x)^2\over2!}", font_size=44, color=sigma_color),
-            MathTex(r"\cdots", font_size=50, color=main_color),
-        ).arrange(DOWN, buff=0.18).move_to([0, -0.7, 0])
-        sigma_exp = MathTex(
-            r"e^{-x\ln x}=\sum_{n=0}^{\infty}{x^n(-\ln x)^n\over n!}",
-            font_size=50,
-            color=main_color,
-        ).move_to([0, 0.35, 0])
-        sigma_exp.set_color_by_tex(r"\sum", sigma_color)
-        sigma_exp.set_color_by_tex(r"-\ln x", exp_color)
+        taylor_caption = caption("One function becomes infinitely many.", sigma_color, 31)
+        taylor_1 = prep_equation(MathTex(r"e^z=1+z+{z^2\over2!}+\cdots", font_size=54, color=main), 5.9)
+        taylor_2 = prep_equation(
+            MathTex(r"e^{-x\ln x}=1+(-x\ln x)+{(-x\ln x)^2\over2!}+\cdots", font_size=46, color=main),
+            6.0,
+        )
+        sigma_line_1 = MathTex(r"e^{-x\ln x}", font_size=54, color=main)
+        sigma_line_2 = MathTex(r"=\sum_{n=0}^{\infty}{x^n(-\ln x)^n\over n!}", font_size=50, color=main)
+        sigma_group = prep_equation(stack_vertical(sigma_line_1, sigma_line_2, buff=0.22), 5.95)
+        sigma_group.set_color_by_tex(r"\sum", sigma_color)
+        sigma_group.set_color_by_tex(r"-\ln x", exp_color)
 
-        self.play(FadeOut(integral_exp), FadeIn(series_caption), FadeIn(ez, scale=1.03), run_time=0.60)
-        self.play(LaggedStart(*[FadeIn(term, shift=UP * 0.12) for term in terms], lag_ratio=0.14), run_time=0.60)
-        self.play(ReplacementTransform(ez, sigma_exp), FadeOut(terms), run_time=0.60)
-        self.play(Circumscribe(sigma_exp, color=sigma_color), run_time=0.55)
-        self.play(FadeOut(series_caption), run_time=0.20)
+        taylor_group_1 = stack_vertical(taylor_caption, taylor_1, buff=0.60).move_to([0, CENTER_Y, 0])
+        taylor_group_2 = stack_vertical(taylor_caption.copy(), taylor_2, buff=0.60).move_to([0, CENTER_Y, 0])
+        sigma_full_group = stack_vertical(taylor_caption.copy(), sigma_group, buff=0.55).move_to([0, CENTER_Y, 0])
+        keep_inside_safe_area(taylor_group_1)
+        keep_inside_safe_area(taylor_group_2)
+        keep_inside_safe_area(sigma_full_group)
+
+        self.play(FadeTransform(integral_exp, taylor_group_1), run_time=0.60)
+        self.play(FadeTransform(taylor_group_1, taylor_group_2), run_time=0.60)
+        self.play(FadeTransform(taylor_group_2, sigma_full_group), run_time=0.70)
+        self.play(Circumscribe(sigma_group, color=sigma_color), run_time=0.55)
+        self.play(FadeOut(sigma_full_group[0]), run_time=0.20)
+        set_visible(sigma_group)
+
         # ------------------------------------------------------------------
         # 8–11 seconds: move the sum outside the integral.
-        # Running total ≈ 11.0s
+        # Running total ≈ 10.8s
         # ------------------------------------------------------------------
-        inside = MathTex(
-            r"I=\int_0^1 \sum_{n=0}^{\infty}{x^n(-\ln x)^n\over n!}\,dx",
-            font_size=47,
-            color=main_color,
-        ).move_to([0, 1.15, 0])
-        outside = MathTex(
-            r"I=\sum_{n=0}^{\infty}{1\over n!}\int_0^1 x^n(-\ln x)^n\,dx",
-            font_size=47,
-            color=main_color,
-        ).move_to([0, 0.65, 0])
-        inside.set_color_by_tex(r"\sum", sigma_color)
-        outside.set_color_by_tex(r"\sum", sigma_color)
-        sigma_symbol = MathTex(r"\sum", font_size=78, color=sigma_color).move_to([-0.15, 1.0, 0])
-        footnote = Tex("Termwise integration is valid here.", font_size=23, color=subtle)
-        footnote.move_to([0, -2.15, 0])
+        inside_line_1 = MathTex(r"I=\int_0^1", r"\sum_{n=0}^{\infty}", font_size=54, color=main)
+        inside_line_2 = MathTex(r"{x^n(-\ln x)^n\over n!}\,dx", font_size=50, color=main)
+        inside_group = prep_equation(stack_vertical(inside_line_1, inside_line_2, buff=0.30), 5.9).move_to([0, CENTER_Y + 0.4, 0])
+        inside_group.set_color_by_tex(r"\sum", sigma_color)
 
-        self.play(ReplacementTransform(sigma_exp, inside), run_time=0.60)
-        self.play(FadeIn(sigma_symbol, scale=1.2), sigma_symbol.animate.move_to([-1.65, 0.66, 0]), run_time=0.55)
-        self.play(ReplacementTransform(inside, outside), FadeOut(sigma_symbol), FadeIn(footnote), run_time=0.75)
-        self.play(Indicate(outside, color=sigma_color, scale_factor=1.02), run_time=0.45)
-        self.play(FadeOut(footnote), run_time=0.20)
+        outside_line_1 = MathTex(r"I=\sum_{n=0}^{\infty}{1\over n!}", font_size=54, color=main)
+        outside_line_2 = MathTex(r"\int_0^1x^n(-\ln x)^n\,dx", font_size=50, color=main)
+        outside_group = prep_equation(stack_vertical(outside_line_1, outside_line_2, buff=0.35), 5.9).move_to([0, CENTER_Y + 0.35, 0])
+        outside_group.set_color_by_tex(r"\sum", sigma_color)
+
+        note = caption("Termwise integration is valid here.", muted, 23).move_to([0, -2.2, 0])
+        keep_inside_safe_area(note)
+        assert not objects_overlap(outside_group, note)
+
+        self.play(FadeTransform(sigma_group, inside_group), run_time=0.55)
+        self.play(FadeTransform(inside_group, outside_group), FadeIn(note), run_time=0.70)
+        self.play(Indicate(outside_group[0], color=sigma_color, scale_factor=1.02), run_time=0.45)
+        self.play(FadeOut(note), run_time=0.20)
+        set_visible(outside_group)
+
         # ------------------------------------------------------------------
         # 11–14 seconds: logarithmic substitution.
-        # Running total ≈ 14.0s
+        # Running total ≈ 13.9s
         # ------------------------------------------------------------------
-        sub_caption = caption("The logarithm disappears.", sub_color, 34).move_to([0, 3.4, 0])
-        x_sub = MathTex(r"x=e^{-t}", font_size=66, color=sub_color).move_to([0, 2.35, 0])
-        interval_x = MathTex(r"x:0\to1", font_size=42, color=x_color).move_to([-1.45, 0.8, 0])
-        interval_t = MathTex(r"t:\infty\to0", font_size=42, color=sub_color).move_to([1.45, 0.8, 0])
-        arrow = Arrow(interval_x.get_right(), interval_t.get_left(), buff=0.15, color=subtle)
-        log_to_t = MathTex(r"-\ln x\longrightarrow t", font_size=46, color=exp_color).move_to([0, -0.25, 0])
-        log_integral = MathTex(
-            r"\int_0^1 x^n(-\ln x)^n\,dx",
-            font_size=46,
-            color=main_color,
-        ).move_to([0, -1.55, 0])
-        gamma_seed = MathTex(
-            r"\int_0^\infty t^n e^{-(n+1)t}\,dt",
-            font_size=48,
-            color=main_color,
-        ).move_to(log_integral)
-        gamma_seed.set_color_by_tex("t", sub_color)
+        sub_caption = caption("The logarithm disappears.", sub_color, 34)
+        sub_eq = prep_equation(MathTex(r"x=e^{-t}", font_size=66, color=sub_color), 5.6)
+        sub_group = stack_vertical(sub_caption, sub_eq, buff=0.55).move_to([0, CENTER_Y, 0])
+        keep_inside_safe_area(sub_group)
 
-        self.play(FadeOut(outside), FadeIn(sub_caption), GrowFromCenter(x_sub), run_time=0.65)
-        self.play(FadeIn(interval_x), GrowArrow(arrow), FadeIn(interval_t), run_time=0.55)
-        self.play(FadeIn(log_to_t, shift=UP * 0.1), run_time=0.45)
-        self.play(FadeIn(log_integral), run_time=0.45)
-        self.play(ReplacementTransform(log_integral, gamma_seed), Flash(log_to_t, color=exp_color), run_time=0.60)
-        self.play(FadeOut(VGroup(sub_caption, x_sub, interval_x, interval_t, arrow, log_to_t)), run_time=0.35)
+        interval_line = prep_equation(MathTex(r"x:0\to1\quad\Rightarrow\quad t:\infty\to0", font_size=48, color=main), 5.9)
+        interval_line.set_color_by_tex("x", x_color)
+        interval_line.set_color_by_tex("t", sub_color)
+        log_line = prep_equation(MathTex(r"-\ln x\longrightarrow t", font_size=50, color=exp_color), 5.5)
+        interval_group = stack_vertical(interval_line, log_line, buff=0.8).move_to([0, CENTER_Y, 0])
+        keep_inside_safe_area(interval_group)
+        assert not objects_overlap(interval_line, log_line)
+
+        old_int = prep_equation(MathTex(r"\int_0^1x^n(-\ln x)^n\,dx", font_size=48, color=main), 5.8)
+        new_int = prep_equation(MathTex(r"\int_0^\infty t^ne^{-(n+1)t}\,dt", font_size=50, color=main), 5.8)
+        new_int.set_color_by_tex("t", sub_color)
+        transformed_group = stack_vertical(old_int, new_int, buff=0.75).move_to([0, CENTER_Y, 0])
+        keep_inside_safe_area(transformed_group)
+        assert not objects_overlap(old_int, new_int)
+
+        self.play(FadeOut(outside_group), FadeIn(sub_group), run_time=0.55)
+        self.play(Circumscribe(sub_eq, color=sub_color), run_time=0.45)
+        self.play(FadeOut(sub_group), FadeIn(interval_group), run_time=0.55)
+        self.play(Flash(log_line, color=exp_color), run_time=0.45)
+        self.play(FadeOut(interval_group), FadeIn(transformed_group), run_time=0.70)
+        self.play(Circumscribe(new_int, color=sub_color), run_time=0.45)
+        set_visible(transformed_group)
 
         # ------------------------------------------------------------------
-        # 14–17 seconds: reveal the Gamma integral.
-        # Running total ≈ 17.0s
+        # 14–17 seconds: Gamma integral transformation.
+        # Running total ≈ 16.9s
         # ------------------------------------------------------------------
-        u_sub = MathTex(r"u=(n+1)t", font_size=60, color=sub_color).move_to([0, 2.6, 0])
-        scaled = MathTex(
-            r"{1\over (n+1)^{n+1}}\int_0^\infty u^n e^{-u}\,du",
-            font_size=48,
-            color=main_color,
-        ).move_to([0, 0.75, 0])
-        scaled.set_color_by_tex("u", sub_color)
-        gamma_eq = MathTex(r"\int_0^\infty u^n e^{-u}\,du=n!", font_size=52, color=main_color)
-        gamma_eq.move_to([0, -1.35, 0])
+        u_eq = prep_equation(MathTex(r"u=(n+1)t", font_size=60, color=sub_color), 5.4).move_to([0, CENTER_Y, 0])
+        scaled_line_1 = MathTex(r"{1\over(n+1)^{n+1}}", font_size=52, color=main)
+        scaled_line_2 = MathTex(r"\int_0^\infty u^ne^{-u}\,du", font_size=52, color=main)
+        scaled_group = prep_equation(stack_vertical(scaled_line_1, scaled_line_2, buff=0.22), 5.6)
+        scaled_group.set_color_by_tex("u", sub_color).move_to([0, CENTER_Y, 0])
+
+        gamma_label = caption("Gamma integral", gamma_color, 34)
+        gamma_eq = prep_equation(MathTex(r"\int_0^\infty u^ne^{-u}\,du=n!", font_size=52, color=main), 5.8)
         gamma_eq.set_color_by_tex("n!", gamma_color)
-        gamma_label = caption("Gamma integral", gamma_color, 34).next_to(gamma_eq, DOWN, buff=0.28)
+        gamma_group = stack_vertical(gamma_label, gamma_eq, buff=0.45).move_to([0, CENTER_Y, 0])
+        keep_inside_safe_area(gamma_group)
+        assert not objects_overlap(gamma_label, gamma_eq)
 
-        self.play(FadeIn(u_sub, scale=1.05), run_time=0.45)
-        self.play(ReplacementTransform(gamma_seed, scaled), run_time=0.60)
-        self.play(FadeIn(gamma_eq, shift=UP * 0.1), FadeIn(gamma_label), run_time=0.65)
-        self.play(Flash(gamma_eq, color=gamma_color), Indicate(gamma_eq, color=gamma_color, scale_factor=1.04), run_time=0.60)
-        self.play(FadeOut(VGroup(u_sub, scaled, gamma_label)), run_time=0.35)
+        result_line_1 = MathTex(r"\int_0^1x^n(-\ln x)^n\,dx", font_size=43, color=main)
+        result_line_2 = MathTex(r"={n!\over(n+1)^{n+1}}", font_size=56, color=gamma_color)
+        result_group = prep_equation(stack_vertical(result_line_1, result_line_2, buff=0.35), 5.8).move_to([0, CENTER_Y, 0])
+
+        self.play(FadeOut(transformed_group), FadeIn(u_eq), run_time=0.45)
+        self.play(FadeTransform(u_eq, scaled_group), run_time=0.65)
+        self.play(FadeOut(scaled_group), FadeIn(gamma_group), run_time=0.55)
+        self.play(Flash(gamma_eq, color=gamma_color), Indicate(gamma_eq, color=gamma_color, scale_factor=1.03), run_time=0.60)
+        self.play(FadeTransform(gamma_group, result_group), run_time=0.55)
+        set_visible(result_group)
 
         # ------------------------------------------------------------------
         # 17–20 seconds: perfect cancellation.
-        # Running total ≈ 20.0s
+        # Running total ≈ 19.9s
         # ------------------------------------------------------------------
-        cancel_caption = caption("Everything cancels perfectly.", final_color, 32).move_to([0, 3.2, 0])
-        cancel_eq = MathTex(
-            r"I=\sum_{n=0}^{\infty}{1\over n!}\,{n!\over (n+1)^{n+1}}",
-            font_size=48,
-            color=main_color,
-        ).move_to([0, 0.95, 0])
+        cancel_eq_line_1 = MathTex(r"I=\sum_{n=0}^{\infty}", font_size=54, color=main)
+        cancel_eq_line_2 = MathTex(r"{1\over n!}\,{n!\over(n+1)^{n+1}}", font_size=54, color=main)
+        cancel_eq = prep_equation(stack_vertical(cancel_eq_line_1, cancel_eq_line_2, buff=0.24), 5.8)
         cancel_eq.set_color_by_tex("n!", gamma_color)
-        line1 = Line([-0.55, 1.12, 0], [0.05, 0.58, 0], color=gamma_color, stroke_width=7)
-        line2 = Line([0.68, 1.12, 0], [1.2, 0.58, 0], color=gamma_color, stroke_width=7)
-        simplified = MathTex(
-            r"I=\sum_{n=0}^{\infty}{1\over (n+1)^{n+1}}",
-            font_size=54,
-            color=main_color,
-        ).move_to([0, 0.65, 0])
-        simplified.set_color_by_tex(r"\sum", sigma_color)
+        cancel_caption = caption("Everything cancels perfectly.", final_color, 31)
+        cancel_group = stack_vertical(cancel_eq, cancel_caption, buff=0.60).move_to([0, CENTER_Y, 0])
+        keep_inside_safe_area(cancel_group)
+        assert not objects_overlap(cancel_eq, cancel_caption)
 
-        self.play(ReplacementTransform(gamma_eq, cancel_eq), FadeIn(cancel_caption), run_time=0.70)
-        self.play(Create(line1), Create(line2), run_time=0.35)
-        self.play(Flash(cancel_eq, color=gamma_color), run_time=0.45)
-        self.play(ReplacementTransform(cancel_eq, simplified), FadeOut(line1), FadeOut(line2), run_time=0.60)
-        self.play(Circumscribe(simplified, color=final_color), run_time=0.45)
-        self.play(FadeOut(cancel_caption), run_time=0.20)
+        cancel_marks = VGroup(
+            Line([-0.72, -0.04, 0], [-0.30, -0.43, 0], color=gamma_color, stroke_width=7),
+            Line([0.08, -0.04, 0], [0.50, -0.43, 0], color=gamma_color, stroke_width=7),
+        ).set_z_index(7)
+
+        simplified_line_1 = MathTex(r"I=\sum_{n=0}^{\infty}", font_size=56, color=main)
+        simplified_line_2 = MathTex(r"{1\over(n+1)^{n+1}}", font_size=58, color=main)
+        simplified_group = prep_equation(stack_vertical(simplified_line_1, simplified_line_2, buff=0.28), 5.6)
+        simplified_group.set_color_by_tex(r"\sum", sigma_color).move_to([0, CENTER_Y, 0])
+
+        self.play(FadeTransform(result_group, cancel_group), run_time=0.60)
+        self.play(Create(cancel_marks), run_time=0.35)
+        self.play(Flash(cancel_eq, color=gamma_color), run_time=0.40)
+        self.play(FadeOut(cancel_marks), FadeOut(cancel_caption), FadeTransform(cancel_eq, simplified_group), run_time=0.65)
+        self.play(Circumscribe(simplified_group, color=final_color), run_time=0.45)
+        set_visible(simplified_group)
 
         # ------------------------------------------------------------------
-        # 20–23 seconds: final identity and loop-friendly ending.
-        # Running total ≈ 23.0s including the final hold.
+        # 20–23 seconds: re-index and final identity.
+        # Running total ≈ 23.2s including final hold and clean loop ending.
         # ------------------------------------------------------------------
-        reindex = MathTex(r"k=n+1", font_size=50, color=sub_color).move_to([0, 2.7, 0])
-        final_sum = MathTex(r"\sum_{k=1}^{\infty}{1\over k^k}", font_size=62, color=final_color).move_to([0, 0.65, 0])
-        terms_final = MathTex(
-            r"1+{1\over2^2}+{1\over3^3}+{1\over4^4}+\cdots",
-            font_size=45,
-            color=final_color,
-        ).move_to([0, -1.05, 0])
-        final_top = MathTex(r"\int_0^1 x^{-x}\,dx", font_size=64, color=main_color)
-        final_bottom = MathTex(r"\sum_{k=1}^{\infty}{1\over k^k}", font_size=64, color=final_color)
-        final_equals = MathTex("=", font_size=58, color=main_color)
-        final_group = VGroup(final_top, final_equals, final_bottom).arrange(DOWN, buff=0.12).move_to([0, 0.25, 0])
-        final_box = SurroundingRectangle(final_group, color=final_color, buff=0.22, corner_radius=0.14)
-        numeric_value = Tex(r"$\approx 1.291285997\ldots$", font_size=30, color=subtle)
-        numeric_value.next_to(final_box, DOWN, buff=0.22)
-        faint_axes = axes.copy().set_opacity(0.18).move_to([0, -3.0, 0])
-        faint_graph = graph.copy().set_opacity(0.25).move_to(faint_axes.get_center())
-        faint_area = area.copy().set_opacity(0.16).move_to(faint_axes.get_center())
-        opening_echo = MathTex(r"\int_0^1 x^{-x}\,dx", font_size=72, color=main_color).move_to([0, 0.25, 0])
+        k_eq = prep_equation(MathTex(r"k=n+1", font_size=54, color=sub_color), 5.3).move_to([0, UPPER_Y, 0])
+        reindexed = prep_equation(MathTex(r"\sum_{k=1}^{\infty}{1\over k^k}", font_size=64, color=final_color), 5.3).move_to([0, CENTER_Y, 0])
+        reindex_group = stack_vertical(k_eq, reindexed, buff=0.65).move_to([0, CENTER_Y + 0.2, 0])
+        keep_inside_safe_area(reindex_group)
+        assert not objects_overlap(k_eq, reindexed)
 
-        self.play(FadeIn(reindex, shift=DOWN * 0.12), run_time=0.35)
-        self.play(ReplacementTransform(simplified, final_sum), run_time=0.50)
-        self.play(FadeIn(terms_final, shift=UP * 0.1), run_time=0.35)
-        self.play(ReplacementTransform(VGroup(final_sum, terms_final, reindex), final_group), FadeIn(faint_axes), FadeIn(faint_area), FadeIn(faint_graph), run_time=0.70)
-        self.play(Create(final_box), Circumscribe(final_group, color=final_color), FadeIn(numeric_value), run_time=0.65)
+        expanded = prep_equation(MathTex(r"1+{1\over2^2}+{1\over3^3}+\cdots", font_size=50, color=final_color), 5.8).move_to([0, CENTER_Y, 0])
+
+        final_integral = MathTex(r"\int_0^1x^{-x}\,dx", font_size=66, color=main)
+        final_equals = MathTex(r"=", font_size=58, color=main)
+        final_series = MathTex(r"\sum_{k=1}^{\infty}{1\over k^k}", font_size=66, color=final_color)
+        final_group = prep_equation(stack_vertical(final_integral, final_equals, final_series, buff=0.30), 5.8, 4.8).move_to([0, CENTER_Y, 0])
+        final_box = SurroundingRectangle(final_group, color=final_color, buff=0.30, corner_radius=0.14).set_z_index(7)
+        numeric_value = Tex(r"$\approx 1.291285997\ldots$", font_size=30, color=muted).set_z_index(6)
+        numeric_value.next_to(final_box, DOWN, buff=0.25)
+        keep_inside_safe_area(VGroup(final_box, numeric_value))
+        assert not objects_overlap(final_group, numeric_value, padding=0.05)
+
+        faint_graph = graph_group.copy().set_opacity(0.10).move_to([0, BOTTOM_Y + 0.3, 0]).set_z_index(0)
+        opening_echo = prep_equation(MathTex(r"\int_0^1x^{-x}\,dx", font_size=72, color=main), 5.8).move_to([0, CENTER_Y, 0])
+
+        self.play(FadeTransform(simplified_group, reindex_group), run_time=0.65)
+        self.play(FadeOut(k_eq), FadeTransform(reindexed, expanded), run_time=0.55)
+        self.play(FadeOut(expanded), FadeIn(faint_graph), FadeIn(final_group), run_time=0.65)
+        self.play(Create(final_box), FadeIn(numeric_value), Circumscribe(final_group, color=final_color), run_time=0.80)
         # Optional sound: reveal impact
-        self.play(Flash(final_group, color=final_color), final_group.animate.scale(1.03), final_box.animate.scale(1.03), run_time=0.45)
-        self.wait(1.00)
-        self.play(final_group.animate.set_opacity(0.18), final_box.animate.set_opacity(0.12), numeric_value.animate.set_opacity(0.12), FadeIn(opening_echo, scale=1.02), run_time=0.45)
+        self.play(Flash(final_group, color=final_color), run_time=0.45)
+        self.wait(1.10)
+
+        # Clean loop ending: remove final identity first, then restore the opener.
+        self.play(FadeOut(VGroup(final_group, final_box, numeric_value, faint_graph)), run_time=0.45)
+        self.play(FadeIn(opening_echo, scale=1.03), run_time=0.45)
         # Optional sound: soft loop transition
         self.wait(0.10)
 
@@ -272,4 +398,3 @@ class SophomoresDreamReel(Scene):
 if __name__ == "__main__":
     print("Quick test: manim -ql sophomores_dream_reel.py SophomoresDreamReel")
     print("Full-quality vertical render: manim -qh --fps 30 sophomores_dream_reel.py SophomoresDreamReel")
-    print("Optional H.264: ffmpeg -i media/videos/sophomores_dream_reel/1080p30/SophomoresDreamReel.mp4 -c:v libx264 -profile:v high -level 4.1 -pix_fmt yuv420p -movflags +faststart -an sophomores_dream_instagram.mp4")
