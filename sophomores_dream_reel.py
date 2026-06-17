@@ -19,7 +19,6 @@ Optional Instagram-friendly H.264 conversion:
 """
 
 from manim import *
-import numpy as np
 
 # Instagram Reel / phone-first frame.
 config.pixel_width = 1080
@@ -250,6 +249,8 @@ class SophomoresDreamReel(Scene):
         final_equals = MathTex("=", font_size=58, color=main_color)
         final_group = VGroup(final_top, final_equals, final_bottom).arrange(DOWN, buff=0.12).move_to([0, 0.25, 0])
         final_box = SurroundingRectangle(final_group, color=final_color, buff=0.22, corner_radius=0.14)
+        numeric_value = Tex(r"$\approx 1.291285997\ldots$", font_size=30, color=subtle)
+        numeric_value.next_to(final_box, DOWN, buff=0.22)
         faint_axes = axes.copy().set_opacity(0.18).move_to([0, -3.0, 0])
         faint_graph = graph.copy().set_opacity(0.25).move_to(faint_axes.get_center())
         faint_area = area.copy().set_opacity(0.16).move_to(faint_axes.get_center())
@@ -259,11 +260,11 @@ class SophomoresDreamReel(Scene):
         self.play(ReplacementTransform(simplified, final_sum), run_time=0.50)
         self.play(FadeIn(terms_final, shift=UP * 0.1), run_time=0.35)
         self.play(ReplacementTransform(VGroup(final_sum, terms_final, reindex), final_group), FadeIn(faint_axes), FadeIn(faint_area), FadeIn(faint_graph), run_time=0.70)
-        self.play(Create(final_box), Circumscribe(final_group, color=final_color), run_time=0.65)
+        self.play(Create(final_box), Circumscribe(final_group, color=final_color), FadeIn(numeric_value), run_time=0.65)
         # Optional sound: reveal impact
         self.play(Flash(final_group, color=final_color), final_group.animate.scale(1.03), final_box.animate.scale(1.03), run_time=0.45)
         self.wait(1.00)
-        self.play(final_group.animate.set_opacity(0.18), final_box.animate.set_opacity(0.12), FadeIn(opening_echo, scale=1.02), run_time=0.45)
+        self.play(final_group.animate.set_opacity(0.18), final_box.animate.set_opacity(0.12), numeric_value.animate.set_opacity(0.12), FadeIn(opening_echo, scale=1.02), run_time=0.45)
         # Optional sound: soft loop transition
         self.wait(0.10)
 
